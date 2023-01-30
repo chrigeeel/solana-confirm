@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"sync"
 
 	"github.com/gagliardetto/solana-go"
@@ -19,8 +18,6 @@ func (c *Confirmer) run() {
 	}
 	c.mu.RUnlock()
 
-	log.Println(len(signatures))
-
 	if len(signatures) == 0 {
 		return
 	}
@@ -33,6 +30,7 @@ func (c *Confirmer) run() {
 	for _, chunk := range chunkSignatures {
 		wg.Add(1)
 		go func(wg *sync.WaitGroup, chunk []solana.Signature) {
+			defer wg.Done()
 			resp, err := c.rpcClient.GetSignatureStatuses(
 				context.TODO(),
 				true,
@@ -48,8 +46,6 @@ func (c *Confirmer) run() {
 		}(&wg, chunk)
 	}
 	wg.Wait()
-
-	log.Println(len(results))
 
 	for i, result := range results {
 		signature := signatures[i]
@@ -68,8 +64,10 @@ func (c *Confirmer) run() {
 
 		if result.Err != nil {
 			task.C <- fmt.Errorf("transaction error: %v", result.Err)
+			c.Unsubscribe(task.signature)
 		} else if result.ConfirmationStatus == task.status {
 			task.C <- nil
+			c.Unsubscribe(task.signature)
 		}
 	}
 }

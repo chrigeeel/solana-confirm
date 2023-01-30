@@ -37,6 +37,11 @@ func New(rpcEndpoint string, options ...confirmerOption) *Confirmer {
 	c := &Confirmer{
 		delay:     defaultDelay,
 		rpcClient: rpc.New(rpcEndpoint),
+		tasks:     make(map[solana.Signature]*Task),
+		mu:        sync.RWMutex{},
+
+		subCh:   make(chan Task, 1),
+		unsubCh: make(chan solana.Signature, 1),
 	}
 
 	for _, o := range options {
@@ -54,8 +59,10 @@ func WithDelay(delay time.Duration) confirmerOption {
 
 func (c *Confirmer) Start() {
 	go func() {
-		c.run()
-		time.Sleep(c.delay)
+		for {
+			c.run()
+			time.Sleep(c.delay)
+		}
 	}()
 
 	go func() {
