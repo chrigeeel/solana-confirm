@@ -35,8 +35,13 @@ const (
 
 func New(rpcEndpoint string, options ...confirmerOption) *Confirmer {
 	c := &Confirmer{
-		delay:     defaultDelay,
 		rpcClient: rpc.New(rpcEndpoint),
+		delay:     defaultDelay,
+		tasks:     make(map[solana.Signature]*Task),
+		mu:        sync.RWMutex{},
+
+		subCh:   make(chan Task),
+		unsubCh: make(chan solana.Signature),
 	}
 
 	for _, o := range options {
@@ -54,8 +59,10 @@ func WithDelay(delay time.Duration) confirmerOption {
 
 func (c *Confirmer) Start() {
 	go func() {
-		c.run()
-		time.Sleep(c.delay)
+		for {
+			c.run()
+			time.Sleep(c.delay)
+		}
 	}()
 
 	go func() {
@@ -74,8 +81,26 @@ func (c *Confirmer) Start() {
 	}()
 }
 
-func (c *Confirmer) WaitForConfirmationStatus(signature solana.Signature, status rpc.ConfirmationStatusType, maxAttempts int) error {
+func (c *Confirmer) waitForConfirmationStatus(signature solana.Signature, status rpc.ConfirmationStatusType, maxAttempts int) error {
 	return <-c.Subscribe(signature, status, maxAttempts)
+}
+
+func (c *Confirmer) Processed(signature solana.Signature) error {
+	timeout := 10 * time.Second
+	maxAttempts := int(timeout / c.delay)
+	return c.waitForConfirmationStatus(signature, rpc.ConfirmationStatusProcessed, maxAttempts)
+}
+
+func (c *Confirmer) Confirmed(signature solana.Signature) error {
+	timeout := 30 * time.Second
+	maxAttempts := int(timeout / c.delay)
+	return c.waitForConfirmationStatus(signature, rpc.ConfirmationStatusConfirmed, maxAttempts)
+}
+
+func (c *Confirmer) Finalized(signature solana.Signature) error {
+	timeout := 120 * time.Second
+	maxAttempts := int(timeout / c.delay)
+	return c.waitForConfirmationStatus(signature, rpc.ConfirmationStatusFinalized, maxAttempts)
 }
 
 func (c *Confirmer) Subscribe(signature solana.Signature, status rpc.ConfirmationStatusType, maxAttempts int) chan error {

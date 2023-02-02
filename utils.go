@@ -7,7 +7,3 @@ func chunkBy[T any](items []T, chunkSize int) (chunks [][]T) {
 	}
 	return append(_chunks, items)
 }
-
-func remove[T any](slice []T, s int) []T {
-	return append(slice[:s], slice[s+1:]...)
-}

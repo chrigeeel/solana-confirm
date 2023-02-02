@@ -43,13 +43,16 @@ func (c *Confirmer) run() {
 			}
 
 			wgMutex.Lock()
+			defer wgMutex.Unlock()
 			results = append(results, resp.Value...)
-			wgMutex.Unlock()
 		}(&wg, chunk)
 	}
 	wg.Wait()
 
-	log.Println(len(results))
+	if len(results) != len(signatures) {
+		log.Print("len results does not match len signatures, please check your rpc")
+		return
+	}
 
 	for i, result := range results {
 		signature := signatures[i]
@@ -68,8 +71,10 @@ func (c *Confirmer) run() {
 
 		if result.Err != nil {
 			task.C <- fmt.Errorf("transaction error: %v", result.Err)
+			c.Unsubscribe(task.signature)
 		} else if result.ConfirmationStatus == task.status {
 			task.C <- nil
+			c.Unsubscribe(task.signature)
 		}
 	}
 }
