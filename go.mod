@@ -2,7 +2,7 @@ module github.com/chrigeeel/solana-confirm
 
 go 1.19
 
-require github.com/gagliardetto/solana-go v1.8.2
+require github.com/gagliardetto/solana-go v1.8.1
 
 require (
 	contrib.go.opencensus.io/exporter/stackdriver v0.13.4 // indirect
