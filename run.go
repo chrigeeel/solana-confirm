@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"sync"
 
 	"github.com/gagliardetto/solana-go"
@@ -41,11 +42,16 @@ func (c *Confirmer) run() {
 			}
 
 			wgMutex.Lock()
+			defer wgMutex.Unlock()
 			results = append(results, resp.Value...)
-			wgMutex.Unlock()
 		}(&wg, chunk)
 	}
 	wg.Wait()
+
+	if len(results) != len(signatures) {
+		log.Print("len results does not match len signatures, please check your rpc")
+		return
+	}
 
 	for i, result := range results {
 		signature := signatures[i]
