@@ -17,10 +17,11 @@ type Task struct {
 }
 
 type Confirmer struct {
-	rpcClient *rpc.Client
-	delay     time.Duration
-	tasks     map[solana.Signature]*Task
-	mu        sync.RWMutex
+	rpcClient                *rpc.Client
+	delay                    time.Duration
+	searchTransactionHistory bool
+	tasks                    map[solana.Signature]*Task
+	mu                       sync.RWMutex
 
 	subCh   chan Task
 	unsubCh chan solana.Signature
@@ -29,16 +30,18 @@ type Confirmer struct {
 type confirmerOption func(*Confirmer)
 
 const (
-	defaultDelay = time.Second
-	rpcLimit     = 256
+	defaultDelay                    = time.Second
+	defaultSearchTransactionHistory = true
+	rpcLimit                        = 256
 )
 
 func New(rpcEndpoint string, options ...confirmerOption) *Confirmer {
 	c := &Confirmer{
-		rpcClient: rpc.New(rpcEndpoint),
-		delay:     defaultDelay,
-		tasks:     make(map[solana.Signature]*Task),
-		mu:        sync.RWMutex{},
+		rpcClient:                rpc.New(rpcEndpoint),
+		delay:                    defaultDelay,
+		searchTransactionHistory: defaultSearchTransactionHistory,
+		tasks:                    make(map[solana.Signature]*Task),
+		mu:                       sync.RWMutex{},
 
 		subCh:   make(chan Task),
 		unsubCh: make(chan solana.Signature),
@@ -54,6 +57,12 @@ func New(rpcEndpoint string, options ...confirmerOption) *Confirmer {
 func WithDelay(delay time.Duration) confirmerOption {
 	return func(c *Confirmer) {
 		c.delay = delay
+	}
+}
+
+func WithSearchTransactionHistory(searchTransactionHistory bool) confirmerOption {
+	return func(c *Confirmer) {
+		c.searchTransactionHistory = searchTransactionHistory
 	}
 }
 

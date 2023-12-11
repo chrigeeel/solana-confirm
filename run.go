@@ -34,7 +34,7 @@ func (c *Confirmer) run() {
 			defer wg.Done()
 			resp, err := c.rpcClient.GetSignatureStatuses(
 				context.TODO(),
-				true,
+				c.searchTransactionHistory,
 				chunk...,
 			)
 			if err != nil {
