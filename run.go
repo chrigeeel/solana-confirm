@@ -38,6 +38,7 @@ func (c *Confirmer) run() {
 				chunk...,
 			)
 			if err != nil {
+				log.Println("getSignatureStatuses failed with:", err)
 				return
 			}
 
@@ -49,7 +50,7 @@ func (c *Confirmer) run() {
 	wg.Wait()
 
 	if len(results) != len(signatures) {
-		log.Print("len results does not match len signatures, please check your rpc")
+		log.Println("len results does not match len signatures, please check your rpc")
 		return
 	}
 
@@ -90,6 +91,7 @@ func (c *Confirmer) run() {
 		if statusFulfiled {
 			task.C <- nil
 			c.Unsubscribe(task.signature)
+			continue
 		}
 	}
 }
