@@ -71,7 +71,23 @@ func (c *Confirmer) run() {
 		if result.Err != nil {
 			task.C <- fmt.Errorf("transaction error: %v", result.Err)
 			c.Unsubscribe(task.signature)
-		} else if result.ConfirmationStatus == task.status {
+			continue
+		}
+
+		var statusFulfiled bool
+		switch task.status {
+		case rpc.ConfirmationStatusProcessed:
+			statusFulfiled = result.ConfirmationStatus == rpc.ConfirmationStatusFinalized ||
+				result.ConfirmationStatus == rpc.ConfirmationStatusConfirmed ||
+				result.ConfirmationStatus == rpc.ConfirmationStatusProcessed
+		case rpc.ConfirmationStatusConfirmed:
+			statusFulfiled = result.ConfirmationStatus == rpc.ConfirmationStatusProcessed ||
+				result.ConfirmationStatus == rpc.ConfirmationStatusConfirmed
+		case rpc.ConfirmationStatusFinalized:
+			statusFulfiled = result.ConfirmationStatus == rpc.ConfirmationStatusFinalized
+		}
+
+		if statusFulfiled {
 			task.C <- nil
 			c.Unsubscribe(task.signature)
 		}
