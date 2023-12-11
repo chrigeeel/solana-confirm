@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"sync"
+	"time"
 
 	"github.com/gagliardetto/solana-go"
 	"github.com/gagliardetto/solana-go/rpc"
@@ -32,11 +33,15 @@ func (c *Confirmer) run() {
 		wg.Add(1)
 		go func(wg *sync.WaitGroup, chunk []solana.Signature) {
 			defer wg.Done()
+			t1 := time.Now()
 			resp, err := c.rpcClient.GetSignatureStatuses(
 				context.TODO(),
 				c.searchTransactionHistory,
 				chunk...,
 			)
+			if c.verbose {
+				log.Printf("CONFIRMER took %s for getSignatureStatuses call with len %d", time.Since(t1).String(), len(chunk))
+			}
 			if err != nil {
 				log.Println("getSignatureStatuses failed with:", err)
 				return

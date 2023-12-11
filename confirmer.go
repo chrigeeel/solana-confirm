@@ -20,6 +20,7 @@ type Confirmer struct {
 	rpcClient                *rpc.Client
 	delay                    time.Duration
 	searchTransactionHistory bool
+	verbose                  bool
 	tasks                    map[solana.Signature]*Task
 	mu                       sync.RWMutex
 
@@ -32,6 +33,7 @@ type confirmerOption func(*Confirmer)
 const (
 	defaultDelay                    = time.Second
 	defaultSearchTransactionHistory = true
+	defaultVerbose                  = false
 	rpcLimit                        = 256
 )
 
@@ -40,6 +42,7 @@ func New(rpcEndpoint string, options ...confirmerOption) *Confirmer {
 		rpcClient:                rpc.New(rpcEndpoint),
 		delay:                    defaultDelay,
 		searchTransactionHistory: defaultSearchTransactionHistory,
+		verbose:                  defaultVerbose,
 		tasks:                    make(map[solana.Signature]*Task),
 		mu:                       sync.RWMutex{},
 
@@ -63,6 +66,12 @@ func WithDelay(delay time.Duration) confirmerOption {
 func WithSearchTransactionHistory(searchTransactionHistory bool) confirmerOption {
 	return func(c *Confirmer) {
 		c.searchTransactionHistory = searchTransactionHistory
+	}
+}
+
+func WithVerbose(verbose bool) confirmerOption {
+	return func(c *Confirmer) {
+		c.verbose = verbose
 	}
 }
 
